@@ -2,14 +2,12 @@ import streamlit as st
 import tensorflow as tf
 import pandas as pd
 import numpy as np
-import json
 import os
-import matplotlib.pyplot as plt
 
 
-# =========================================================
-# PAGE CONFIGURATION
-# =========================================================
+# ============================================
+# PAGE CONFIG
+# ============================================
 
 st.set_page_config(
     page_title="Leaf Disease Detection",
@@ -18,32 +16,32 @@ st.set_page_config(
 )
 
 
-# =========================================================
+# ============================================
 # TITLE
-# =========================================================
+# ============================================
 
 st.title("🌿 Leaf Disease Detection")
 
 st.write(
-    "Plant Pathology 2020 dataset analysis using Deep Learning."
+    "Plant Pathology 2020 - Deep Learning Mini Project"
 )
 
-st.info(
-    "Upload the sample submission CSV to analyze the "
-    "leaf disease prediction probabilities."
+st.write(
+    "Upload the sample submission CSV to analyze "
+    "leaf disease prediction data."
 )
 
 
-# =========================================================
+# ============================================
 # MODEL PATH
-# =========================================================
+# ============================================
 
 MODEL_PATH = "leaf_disease_autoencoder.keras"
 
 
-# =========================================================
+# ============================================
 # LOAD MODEL
-# =========================================================
+# ============================================
 
 @st.cache_resource
 def load_model():
@@ -60,20 +58,23 @@ def load_model():
 model = load_model()
 
 
+# ============================================
+# CHECK MODEL
+# ============================================
+
 if model is None:
 
     st.error(
-        "Model file not found. "
-        "Please upload leaf_disease_autoencoder.keras "
-        "to the GitHub repository."
+        "Model file not found. Please upload "
+        "leaf_disease_autoencoder.keras to GitHub."
     )
 
     st.stop()
 
 
-# =========================================================
-# UPLOAD CSV
-# =========================================================
+# ============================================
+# CSV UPLOAD
+# ============================================
 
 uploaded_file = st.file_uploader(
     "Upload sample_submission CSV",
@@ -81,43 +82,19 @@ uploaded_file = st.file_uploader(
 )
 
 
-# =========================================================
-# PROCESS CSV
-# =========================================================
+# ============================================
+# PROCESS FILE
+# ============================================
 
 if uploaded_file is not None:
 
     try:
 
+        # Read CSV
         df = pd.read_csv(uploaded_file)
 
-        required_columns = [
-            "image_id",
-            "healthy",
-            "multiple_diseases",
-            "rust",
-            "scab"
-        ]
 
-        missing_columns = [
-            col for col in required_columns
-            if col not in df.columns
-        ]
-
-        if missing_columns:
-
-            st.error(
-                "Required columns are missing: "
-                + ", ".join(missing_columns)
-            )
-
-            st.stop()
-
-
-        # =================================================
-        # DISEASE COLUMNS
-        # =================================================
-
+        # Required columns
         disease_columns = [
             "healthy",
             "multiple_diseases",
@@ -126,9 +103,36 @@ if uploaded_file is not None:
         ]
 
 
-        # =================================================
-        # CLEAN DATA
-        # =================================================
+        # Check columns
+        required_columns = [
+            "image_id",
+            "healthy",
+            "multiple_diseases",
+            "rust",
+            "scab"
+        ]
+
+
+        missing_columns = [
+            column
+            for column in required_columns
+            if column not in df.columns
+        ]
+
+
+        if missing_columns:
+
+            st.error(
+                "Missing columns: "
+                + ", ".join(missing_columns)
+            )
+
+            st.stop()
+
+
+        # ========================================
+        # DATA
+        # ========================================
 
         data = df[disease_columns].copy()
 
@@ -137,9 +141,9 @@ if uploaded_file is not None:
         data = data.astype("float32")
 
 
-        # =================================================
-        # PREDICTION USING AUTOENCODER
-        # =================================================
+        # ========================================
+        # AUTOENCODER PREDICTION
+        # ========================================
 
         reconstructed = model.predict(
             data,
@@ -147,9 +151,9 @@ if uploaded_file is not None:
         )
 
 
-        # =================================================
+        # ========================================
         # RECONSTRUCTION ERROR
-        # =================================================
+        # ========================================
 
         reconstruction_error = np.mean(
             np.square(
@@ -164,18 +168,18 @@ if uploaded_file is not None:
         )
 
 
-        # =================================================
-        # PREDICTED DISEASE
-        # =================================================
+        # ========================================
+        # DISEASE CLASS
+        # ========================================
 
         df["predicted_disease"] = df[
             disease_columns
         ].idxmax(axis=1)
 
 
-        # =================================================
-        # DISPLAY DATASET
-        # =================================================
+        # ========================================
+        # DATASET PREVIEW
+        # ========================================
 
         st.subheader("Dataset Preview")
 
@@ -185,13 +189,14 @@ if uploaded_file is not None:
         )
 
 
-        # =================================================
-        # DATASET INFORMATION
-        # =================================================
+        # ========================================
+        # DATASET DETAILS
+        # ========================================
 
         st.subheader("Dataset Information")
 
         col1, col2 = st.columns(2)
+
 
         with col1:
 
@@ -199,6 +204,7 @@ if uploaded_file is not None:
                 "Total Images",
                 len(df)
             )
+
 
         with col2:
 
@@ -208,17 +214,19 @@ if uploaded_file is not None:
             )
 
 
-        # =================================================
+        # ========================================
         # DISEASE DISTRIBUTION
-        # =================================================
+        # ========================================
 
         st.subheader(
-            "Leaf Disease Distribution"
+            "Disease Distribution"
         )
 
-        disease_count = df[
-            "predicted_disease"
-        ].value_counts()
+
+        disease_count = (
+            df["predicted_disease"]
+            .value_counts()
+        )
 
 
         st.bar_chart(
@@ -226,30 +234,36 @@ if uploaded_file is not None:
         )
 
 
-        # =================================================
+        # ========================================
         # MOST COMMON DISEASE
-        # =================================================
+        # ========================================
 
         if len(disease_count) > 0:
 
-            most_common = disease_count.idxmax()
+            most_common = (
+                disease_count.idxmax()
+            )
 
             count = disease_count.max()
 
+
             st.success(
-                f"Most common predicted class: "
-                f"{most_common.replace('_', ' ').title()} "
-                f"({count} images)"
+                "Most common predicted class: "
+                + most_common.replace(
+                    "_", " "
+                ).title()
+                + f" ({count} images)"
             )
 
 
-        # =================================================
-        # SELECT IMAGE ID
-        # =================================================
+        # ========================================
+        # SELECT IMAGE
+        # ========================================
 
         st.subheader(
-            "Check Individual Prediction"
+            "Individual Image Analysis"
         )
+
 
         selected_image = st.selectbox(
             "Select Image ID",
@@ -262,65 +276,85 @@ if uploaded_file is not None:
         ].iloc[0]
 
 
-        predicted_class = selected_row[
-            "predicted_disease"
-        ]
+        # ========================================
+        # RESULT
+        # ========================================
+
+        predicted_class = (
+            selected_row["predicted_disease"]
+        )
 
 
         st.write(
             f"**Image ID:** {selected_image}"
         )
 
-        st.write(
-            f"**Predicted Class:** "
-            f"{predicted_class.replace('_', ' ').title()}"
-        )
 
         st.write(
-            f"**Reconstruction Error:** "
-            f"{selected_row['reconstruction_error']:.6f}"
+            "**Predicted Class:** "
+            + predicted_class
+            .replace("_", " ")
+            .title()
         )
 
 
-        # =================================================
-        # PROBABILITY CHART
-        # =================================================
+        st.write(
+            "**Reconstruction Error:** "
+            + f"{selected_row['reconstruction_error']:.6f}"
+        )
+
+
+        # ========================================
+        # PROBABILITIES
+        # ========================================
 
         st.subheader(
             "Disease Probabilities"
         )
 
-        probabilities = pd.DataFrame(
-            {
-                "Disease": disease_columns,
-                "Probability": [
-                    selected_row[col]
-                    for col in disease_columns
-                ]
-            }
+
+        probability_data = pd.DataFrame({
+
+            "Disease": disease_columns,
+
+            "Probability": [
+                float(
+                    selected_row[column]
+                )
+                for column in disease_columns
+            ]
+
+        })
+
+
+        probability_data = (
+            probability_data
+            .set_index("Disease")
         )
 
-        probabilities = probabilities.set_index(
-            "Disease"
-        )
 
         st.bar_chart(
-            probabilities
+            probability_data
         )
 
 
-        # =================================================
+        # ========================================
         # DOWNLOAD RESULTS
-        # =================================================
+        # ========================================
 
         result_csv = df.to_csv(
             index=False
         )
 
+
         st.download_button(
+
             label="Download Prediction Results",
+
             data=result_csv,
+
             file_name="leaf_disease_results.csv",
+
             mime="text/csv"
         )
 
@@ -328,5 +362,6 @@ if uploaded_file is not None:
     except Exception as e:
 
         st.error(
-            f"Error while processing the file: {e}"
+            "Error while processing CSV: "
+            + str(e)
         )
